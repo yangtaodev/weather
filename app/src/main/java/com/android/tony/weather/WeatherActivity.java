@@ -1,6 +1,8 @@
 package com.android.tony.weather;
 
 import android.content.SharedPreferences;
+import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
@@ -8,6 +10,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -17,6 +20,7 @@ import com.android.tony.weather.gson.Forecast;
 import com.android.tony.weather.gson.Weather;
 import com.android.tony.weather.util.HttpUtil;
 import com.android.tony.weather.util.Utility;
+import com.bumptech.glide.Glide;
 
 import java.io.IOException;
 
@@ -44,9 +48,16 @@ public class WeatherActivity extends AppCompatActivity {
     private TextView mCarWashText;
     private TextView mSportText;
 
+    private ImageView mBingPicImg;
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        if (Build.VERSION.SDK_INT >= 21) {
+            View decorView = getWindow().getDecorView();
+            decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+            getWindow().setStatusBarColor(Color.TRANSPARENT);
+        }
         setContentView(R.layout.activity_weather);
 
         mWeatherLayout = (ScrollView)findViewById(R.id.weather_layout);
@@ -62,9 +73,18 @@ public class WeatherActivity extends AppCompatActivity {
         mCarWashText = (TextView)findViewById(R.id.car_wash_text);
         mSportText = (TextView)findViewById(R.id.sport_text);
 
+        mBingPicImg = (ImageView)findViewById(R.id.bing_pic_img);
+
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+        String bingPic = sharedPreferences.getString("bing_pic", null);
+        if (bingPic != null) {
+            Log.d(TAG, "bingPic != null. bingPic =. "+bingPic.toString());
+            Glide.with(this).load(bingPic).into(mBingPicImg);
+        } else {
+            loadBingPic();
+        }
         String weatherString = sharedPreferences.getString("weather", null);
-        if (weatherString != null){
+        if (weatherString != null) {
             Weather weather = Utility.handleWeatherResponse(weatherString);
             showWeatherInfo(weather);
         } else {
@@ -74,8 +94,8 @@ public class WeatherActivity extends AppCompatActivity {
         }
     }
 
-    public void requestWeather(final String weatherId){
-        String weatherUrl = "http://guolin.tech/api/weather?cityid=" + weatherId + "&key=bc0418b57b2d4918819d3974ac1285d9";
+    public void requestWeather(final String weatherId) {
+        String weatherUrl = "http://guolin.tech/api/weather?cityid=" + weatherId + "&key=4d49f5b949484b889638f8c9025952cf";
         HttpUtil.sendOkHttpRequest(weatherUrl, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
@@ -110,9 +130,11 @@ public class WeatherActivity extends AppCompatActivity {
                 });
             }
         });
+        Log.d(TAG, "requestWeather............. ");
+        loadBingPic();
     }
 
-    private void showWeatherInfo(Weather weather){
+    private void showWeatherInfo(Weather weather) {
         String cityName = weather.basic.cityName;
         String updateTime = weather.basic.update.updateTime.split(" ")[1];
         String degree = weather.now.temperature + "℃";
@@ -124,7 +146,7 @@ public class WeatherActivity extends AppCompatActivity {
         mWeatherInfoText.setText(weatherInfo);
 
         mForecastLayout.removeAllViews();
-        for (Forecast forecast : weather.forecastList){
+        for (Forecast forecast : weather.forecastList) {
             View view = LayoutInflater.from(this).inflate(R.layout.forecast_item, mForecastLayout, false);
             TextView dateText = (TextView)view.findViewById(R.id.date_text);
             TextView infoText = (TextView)view.findViewById(R.id.info_text);
@@ -136,7 +158,7 @@ public class WeatherActivity extends AppCompatActivity {
             maxText.setText(forecast.temperature.min);
             mForecastLayout.addView(view);
         }
-        if (weather.aqi != null){
+        if (weather.aqi != null) {
             mAqiText.setText(weather.aqi.city.aqi);
             mPm25Text.setText(weather.aqi.city.pm25);
         }
@@ -147,6 +169,31 @@ public class WeatherActivity extends AppCompatActivity {
         mCarWashText.setText(carWash);
         mSportText.setText(sport);
         mWeatherLayout.setVisibility(View.VISIBLE);
+    }
+
+    private void loadBingPic() {
+        String requestBingPic = "http://guolin.tech/api/bing_pic";
+        HttpUtil.sendOkHttpRequest(requestBingPic, new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                e.printStackTrace();
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                final String bingPic = response.body().string().toString();
+                Log.d(TAG, "loadBingPic.onResponse bingPic = "+bingPic);
+                SharedPreferences.Editor editor  = PreferenceManager.getDefaultSharedPreferences(WeatherActivity.this).edit();
+                editor.putString("bing_pic", bingPic);
+                editor.apply();
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Glide.with(WeatherActivity.this).load(bingPic).into(mBingPicImg);
+                    }
+                });
+            }
+        });
     }
 
     @Override
