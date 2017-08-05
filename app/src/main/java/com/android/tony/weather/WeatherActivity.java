@@ -154,6 +154,7 @@ public class WeatherActivity extends AppCompatActivity {
                             SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(WeatherActivity.this).edit();
                             editor.putString("weather", responseText);
                             editor.apply();
+                            mWeatherId = weather.basic.weatherId;
                             showWeatherInfo(weather);
                         } else {
                             Log.d(TAG,"onResponse....");
