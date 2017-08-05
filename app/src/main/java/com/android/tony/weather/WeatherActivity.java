@@ -1,5 +1,6 @@
 package com.android.tony.weather;
 
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Build;
@@ -23,6 +24,7 @@ import android.widget.Toast;
 
 import com.android.tony.weather.gson.Forecast;
 import com.android.tony.weather.gson.Weather;
+import com.android.tony.weather.service.AutoUpdateService;
 import com.android.tony.weather.util.HttpUtil;
 import com.android.tony.weather.util.Utility;
 import com.bumptech.glide.Glide;
@@ -201,6 +203,8 @@ public class WeatherActivity extends AppCompatActivity {
         mCarWashText.setText(carWash);
         mSportText.setText(sport);
         mWeatherLayout.setVisibility(View.VISIBLE);
+        Intent intent = new Intent(this, AutoUpdateService.class);
+        startService(intent);
     }
 
     private void loadBingPic() {
